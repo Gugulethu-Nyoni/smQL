@@ -1,8 +1,15 @@
-# semantqQL
-CRUD Abstraction for Semantq Full Stack Apps (semantqQL)
+Got it! So the logging is **automatic inside `semantQL.js` unless the user disables it** with `{ log: false }` in the options, and the user doesn’t need to manually log anything outside.
 
-A super lightweight, robust, and reusable JavaScript HTTP client class that abstracts standard **CRUD** (Create, Read, Update, Delete) operations with simple `fetch` API calls — designed to streamline REST API interactions in your full-stack SemantQL projects.
+Here’s the updated README section clarifying that:
 
+---
+
+````markdown
+# semantQL.js
+
+A minimalistic, robust, and reusable JavaScript HTTP client class that abstracts standard **CRUD** (Create, Read, Update, Delete) operations with simple `fetch` API calls — designed to streamline REST API interactions in your full-stack SemantQL projects.
+
+---
 
 ## Installation
 
@@ -18,7 +25,7 @@ Import it into your project:
 import smQL from '@semantq/ql';
 ```
 
-
+---
 
 ## Usage
 
@@ -36,7 +43,7 @@ const result = await new smQL(endpoint, method, body, options);
   * `headers` — additional headers
   * `log` — boolean to enable/disable automatic console logging (default: `true`)
 
-
+---
 
 ## Automatic Logging
 
@@ -48,7 +55,7 @@ You do **not** need to manually log responses in your application code unless yo
 await new smQL('http://localhost:3003/product/products', 'GET', null, { log: false });
 ```
 
-
+---
 
 ## Returned Result Object
 
@@ -65,19 +72,21 @@ The promise resolves to an object containing:
 
 You can use this object directly without needing extra logging.
 
-
+---
 
 ## Examples: Common CRUD Operations
 
 ### 1. **GET** — Fetch all products
 
 ```js
-const data = await new smQL('http://localhost:3003/product/products');
+const response = await new smQL('http://localhost:3003/product/products');
 
-//now you can do: console.log(data); 
+if (response.ok) {
+  // Use response.data as needed
+}
 ```
 
-
+---
 
 ### 2. **POST** — Create a new category
 
@@ -87,7 +96,7 @@ const newCategory = { name: 'Mobiles' };
 const response = await new smQL('http://localhost:3003/category/categories', 'POST', newCategory);
 ```
 
-
+---
 
 ### 3. **PUT** — Update an existing category
 
@@ -98,7 +107,7 @@ const categoryId = 7;
 const response = await new smQL(`http://localhost:3003/category/categories/${categoryId}`, 'PUT', updatedCategory);
 ```
 
-
+---
 
 ### 4. **DELETE** — Delete a product (without logs)
 
@@ -108,7 +117,7 @@ const productId = 42;
 const response = await new smQL(`http://localhost:3003/product/products/${productId}`, 'DELETE', null, { log: false });
 ```
 
-
+---
 
 ## Why Use semantQL.js?
 
@@ -121,11 +130,27 @@ This class serves as a **simple CRUD abstraction layer** within the **full-stack
 
 It’s lightweight and designed with developer experience in mind.
 
+---
 
-Happy CRUDing. !!!
+## License
 
-## **License**
+MIT © SemantQ
 
-Semantq is open-source software licensed under the **MIT License**.
+---
 
-## Semantq Main Documentation: [Semantq](https://github.com/Gugulethu-Nyoni/semantq).
+## Contributing
+
+Feel free to open issues or submit pull requests for improvements!
+
+---
+
+## Contact
+
+For questions, reach out on the SemantQ community channels or GitHub.
+
+```
+
+---
+
+Want me to help you generate usage snippets or examples that omit manual logging accordingly?
+```
