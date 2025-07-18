@@ -1,0 +1,11 @@
+{
+  "name": "@semantq/semantqql",
+  "version": "1.0.0",
+  "description": "CRUD abstraction module for SemantQL",
+  "main": "semantqQL.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Gugulethu Nyoni",
+  "license": "MIT"
+}
