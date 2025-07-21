@@ -1,7 +1,7 @@
 {
   "name": "@semantq/ql",
-  "version": "1.1.0",
-  "description": "CRUD abstraction module for SemantQL",
+  "version": "1.1.1",
+  "description": "CRUD abstraction module for SemantqQL",
   "main": "semantqQL.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
