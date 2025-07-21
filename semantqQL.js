@@ -109,9 +109,7 @@ export class Form {
 
     this.form.addEventListener(eventType, (event) => {
       event.preventDefault();
-
-      const formData = new FormData(this.form);
-      this.data = Object.fromEntries(formData.entries());
+      this.data = this.#captureFormData(this.form);
 
       if (this.debug) {
         console.log(`[Form] Data captured from #${formId}:`, this.data);
@@ -126,8 +124,39 @@ export class Form {
     });
   }
 
+  #captureFormData(form) {
+    const formData = new FormData(form);
+    const data = {};
+    
+    // Handle all form elements
+    for (const [name, value] of formData.entries()) {
+      // If the key already exists, convert to array or push to existing array
+      if (data[name] !== undefined) {
+        if (Array.isArray(data[name])) {
+          data[name].push(value);
+        } else {
+          data[name] = [data[name], value];
+        }
+      } else {
+        data[name] = value;
+      }
+    }
+    
+    // Special handling for multi-selects that might not be included in FormData if nothing selected
+    const multiSelects = form.querySelectorAll('select[multiple]');
+    multiSelects.forEach(select => {
+      if (!select.name) return;
+      
+      const selectedOptions = Array.from(select.selectedOptions).map(opt => opt.value);
+      if (selectedOptions.length > 0) {
+        data[select.name] = selectedOptions.length === 1 ? selectedOptions[0] : selectedOptions;
+      }
+    });
+    
+    return data;
+  }
+
   getData() {
     return this.data;
   }
 }
-
