@@ -1,8 +1,8 @@
-# SemantqQL 
+# smQL 
 
 **CRUD Abstraction for Semantq Full Stack Apps**
 
-SemantqQL is a super lightweight, robust, and reusable JavaScript HTTP client class that simplifies **CRUD** (Create, Read, Update, Delete) operations using standard `fetch` API calls. It’s designed to streamline REST API interactions in your Semantq full-stack apps—keeping your code clean, consistent, and DRY.
+smQL is a super lightweight, robust, and reusable JavaScript HTTP client class that simplifies **CRUD** (Create, Read, Update, Delete) operations using standard `fetch` API calls. It’s designed to streamline REST API interactions in your Semantq full-stack apps—keeping your code clean, consistent, and DRY.
 
 
 ## Installation
@@ -160,7 +160,7 @@ await new smQL('/product/products', 'POST', formData, {
 
 ## Capturing Form Data: The `Form` Helper Class
 
-`semantqQL` ships with a lightweight `Form` utility class that captures HTML form submissions, converts them to a plain JS object, and lets you handle the data via a simple callback or custom event.
+`smQL` ships with a lightweight `Form` utility class that captures HTML form submissions, converts them to a plain JS object, and lets you handle the data via a simple callback or custom event.
 
 ### Step 1: Minimal Setup (Quick Start)
 
@@ -266,7 +266,7 @@ new Form('contactForm', {
 });
 ```
 
-## Why Use `semantqQL.js`?
+## Why Use `smQL.js`?
 
 *  **Clean**: Say goodbye to repetitive fetch boilerplate
 *  **Fast**: One-liner CRUD calls
@@ -276,7 +276,7 @@ new Form('contactForm', {
 
 ##  Related Projects
 
-*  [Semantq Full Stack Starter](https://github.com/Gugulethu-Nyoni/semantq) – Seamlessly integrates with `semantqQL`.
+*  [Semantq Full Stack Starter](https://github.com/Gugulethu-Nyoni/semantq) – Seamlessly integrates with `smQL`.
 
 ## License
 
