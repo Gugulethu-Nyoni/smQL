@@ -1,5 +1,5 @@
 // smQL.js - Final version
-export default class smQL {
+export class smQL {
   constructor(baseURL, defaultHeaders = {}) {
     this.baseURL = baseURL;
     this.defaultHeaders = {
@@ -14,6 +14,7 @@ export default class smQL {
   }
 
   async request(endpoint, method = 'GET', body = null, headers = {}) {
+  try {
     const finalHeaders = {
       ...this.defaultHeaders,
       ...headers,
@@ -25,29 +26,43 @@ export default class smQL {
 
     const options = { method, headers: finalHeaders };
 
-    // Add body if needed and not GET/HEAD
     if (body && method !== 'GET' && method !== 'HEAD') {
       if (finalHeaders['Content-Type'] === 'application/json') {
         options.body = JSON.stringify(body);
       } else {
-        options.body = body; // e.g. FormData or other
+        options.body = body;
       }
     }
 
     const response = await fetch(`${this.baseURL}${endpoint}`, options);
-
-    const contentType = response.headers.get('content-type');
-    const data = contentType && contentType.includes('application/json')
-      ? await response.json()
-      : await response.text();
+    
+    let data;
+    try {
+      const contentType = response.headers.get('content-type');
+      data = contentType && contentType.includes('application/json')
+        ? await response.json()
+        : await response.text();
+    } catch (parseError) {
+      // If JSON parsing fails, include the raw response in the error
+      const rawResponse = await response.text();
+      throw new Error(`Failed to parse response: ${rawResponse}`);
+    }
 
     if (!response.ok) {
-      // Throw error with message or raw data for easy catch in caller
-      throw new Error(data?.message || data || 'Request failed');
+      // Include status code and response data in error
+      const error = new Error(data?.message || data || `Request failed with status ${response.status}`);
+      error.status = response.status;
+      error.response = data;
+      throw error;
     }
 
     return data;
+  } catch (error) {
+    console.error(`API request failed: ${method} ${endpoint}`, error);
+    throw error;
   }
+}
+
 
   get(endpoint, headers = {}) {
     return this.request(endpoint, 'GET', null, headers);
@@ -139,3 +154,124 @@ export class Form {
     return this.data;
   }
 }
+
+
+
+// Add this new Notification class right before the final exports
+export class Notification {
+  static show(options) {
+    // Create container if it doesn't exist
+    let container = document.getElementById('notification-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'notification-container';
+      document.body.appendChild(container);
+      
+      // Add styles dynamically
+      const style = document.createElement('style');
+      style.textContent = `
+        #notification-container {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          z-index: 1000;
+        }
+        
+        .notification {
+          position: relative;
+          padding: 15px 25px;
+          margin-bottom: 15px;
+          border-radius: 5px;
+          color: white;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          display: flex;
+          align-items: center;
+          max-width: 400px;
+          transform: translateX(120%);
+          transition: transform 0.3s ease-in-out;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
+        }
+        
+        .notification.show {
+          transform: translateX(0);
+        }
+        
+        .notification.success {
+          background-color: #4CAF50;
+          border-left: 5px solid #2E7D32;
+        }
+        
+        .notification.error {
+          background-color: #F44336;
+          border-left: 5px solid #C62828;
+        }
+        
+        .notification.warning {
+          background-color: #FF9800;
+          border-left: 5px solid #EF6C00;
+        }
+        
+        .notification-icon {
+          margin-right: 12px;
+          font-size: 24px;
+          font-weight: bold;
+        }
+        
+        .notification-close {
+          margin-left: 15px;
+          cursor: pointer;
+          font-weight: bold;
+          font-size: 20px;
+          opacity: 0.8;
+        }
+        
+        .notification-close:hover {
+          opacity: 1;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Default options
+    const defaults = {
+      type: 'success',
+      message: 'Operation completed successfully',
+      duration: 5000,
+      closeable: true
+    };
+    
+    const settings = {...defaults, ...options};
+    
+    const notification = document.createElement('div');
+    notification.className = `notification ${settings.type}`;
+    notification.innerHTML = `
+      <span class="notification-icon">${settings.type === 'success' ? '✓' : '⚠'}</span>
+      <span class="notification-message">${settings.message}</span>
+      ${settings.closeable ? '<span class="notification-close" title="Dismiss">&times;</span>' : ''}
+    `;
+    
+    container.appendChild(notification);
+    
+    // Trigger animation
+    setTimeout(() => notification.classList.add('show'), 10);
+    
+    // Auto-remove if duration is set
+    if (settings.duration > 0) {
+      setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+      }, settings.duration);
+    }
+    
+    // Close button handler
+    const closeBtn = notification.querySelector('.notification-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+      });
+    }
+  }
+}
+
+
