@@ -1,8 +1,9 @@
-# smQL 
+# smQL
 
 **CRUD Abstraction for Semantq Full Stack Apps**
 
-smQL is a super lightweight, robust, and reusable JavaScript HTTP client class that simplifies **CRUD** (Create, Read, Update, Delete) operations using standard `fetch` API calls. It’s designed to streamline REST API interactions in your Semantq full-stack apps—keeping your code clean, consistent, and DRY.
+smQL is a super lightweight, robust, and reusable JavaScript HTTP client class that simplifies **CRUD** (Create, Read, Update, Delete) operations using standard `fetch` API calls. It’s designed to streamline REST API interactions in your Semantq full-stack apps — keeping your code clean, consistent, and DRY.
+
 
 
 ## Installation
@@ -26,32 +27,66 @@ import smQL, { Form } from '@semantq/ql';
 
 ## Usage
 
-Create an instance using:
+### Static One-Off Calls
+
+Make a single request without creating an instance:
+
+```js
+const res = await smQL.fetch('/api/resource', 'GET');
+```
+
+
+
+### Creating an Instance with Base URL + Using Convenience CRUD Methods
+
+Instantiate `smQL` with a base API URL, then call methods passing relative endpoint paths:
+
+```js
+const api = new smQL('http://localhost:3003');
+
+const products = await api.get('/product/products');
+
+const newProduct = { name: 'Herbal Tea', price: 29.99 };
+await api.post('/product/products', newProduct);
+
+const updateData = { price: 24.99 };
+await api.put('/product/products/42', updateData);
+
+await api.delete('/product/products/42');
+```
+
+
+
+### Direct Constructor Usage (Full Parameter Mode)
+
+Alternatively, call directly with all parameters:
 
 ```js
 const result = await new smQL(endpoint, method, body, options);
 ```
 
-### Parameters:
+#### Parameters:
 
-* **`endpoint`**: API URL string
-* **`method`**: HTTP method string (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`) – defaults to `'GET'`
-* **`body`**: Data payload for POST/PUT/PATCH requests (optional)
-* **`options`**: Config object supporting:
+| Parameter  | Type     | Description                                                             |
+| - | -- | -- |
+| `endpoint` | `string` | Full API URL or relative path                                           |
+| `method`   | `string` | HTTP method (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`), defaults `'GET'` |
+| `body`     | `object` | Payload for `POST`, `PUT`, or `PATCH` (optional)                        |
+| `options`  | `object` | Config object supporting:                                               |
 
-  | Option           | Type    | Description                                                         |
-  | - | - | - |
-  | `headers`        | Object  | Additional headers                                                  |
-  | `log`            | Boolean | Enable/disable auto logging to console (default: `true`)            |
-  | `formId`         | String  | DOM ID of the form to show auto success/error messages              |
-  | `successMessage` | String  | Custom message shown on success (default: "Submission successful.") |
-  | `errorMessage`   | String  | Custom message on failure (default: "An error occurred.")           |
+| Option           | Type    | Description                                                     |
+| - | - |  |
+| `headers`        | Object  | Additional headers to send (merged with default `Content-Type`) |
+| `log`            | Boolean | Enable/disable console logging (default: `true`)                |
+| `formId`         | String  | DOM ID of a form to auto-replace with success/error message     |
+| `successMessage` | String  | Message shown on success (default: "Submission successful.")    |
+| `errorMessage`   | String  | Message shown on failure (default: "An error occurred.")        |
 
 
 
 ## Auto Logging
 
-Out of the box, all requests automatically log success or failure:
+All requests automatically log success or failure to the console:
 
 ```js
 POST [201]: { id: 1, name: "Item" }
@@ -61,51 +96,50 @@ Disable logs per request:
 
 ```js
 await new smQL('/api/resource', 'POST', payload, { log: false });
-
-// OR 
-
-await new smQL('/api/resource', 'GET', null, { log: false });
-
 ```
 
-##  Returned Result
 
-Each request returns a promise (response) that resolves to:
+
+## Returned Result
+
+Each request returns a Promise resolving to:
 
 ```js
 {
   status: number,       // HTTP status code
   ok: boolean,          // true if response.ok
-  data: any,            // JSON or plain response
-  error?: string        // Error message if applicable
+  data: any,            // JSON or text response data
+  error?: string        // Error message if request failed
 }
 ```
 
-So your actual data should be accessed this way: 
+Example usage:
 
-```javascript
-let data;
-const response = await new smQL('/api/resouce');
-data=response.data;
+```js
+const response = await new smQL('/api/resource');
+const data = response.data;
 ```
+
+
 
 ## Built-in Form Feedback
 
-If you provide `formId` in the config:
+Pass a `formId` in options to automatically replace the form with messages:
 
-* On **success** (`POST`, `PUT`): the form is replaced with a success message.
-* On **error**: the form is replaced with an error message.
+* On **success** (`POST`, `PUT`): form replaced by success message.
+* On **error**: form replaced by error message.
 
 Example:
 
 ```js
-const formId = 'addProductForm';
 await new smQL('/products', 'POST', formData, {
-  formId,
+  formId: 'addProductForm',
   successMessage: 'Product added!',
   errorMessage: 'Something went wrong.',
 });
 ```
+
+
 
 ## Examples: CRUD Operations
 
@@ -129,12 +163,11 @@ const update = { name: 'Mobile Phones' };
 const res = await new smQL('http://localhost:3003/category/categories/7', 'PUT', update);
 ```
 
-### 4. **DELETE** — Remove a record (with logs off)
+### 4. **DELETE** — Remove a record (logs off)
 
 ```js
 const res = await new smQL('http://localhost:3003/product/products/42', 'DELETE', null, { log: false });
 ```
-
 
 ### 5. **GET with Custom Headers**
 
@@ -158,32 +191,25 @@ await new smQL('/product/products', 'POST', formData, {
 });
 ```
 
+
+
 ## Capturing Form Data: The `Form` Helper Class
 
-`smQL` ships with a lightweight `Form` utility class that captures HTML form submissions, converts them to a plain JS object, and lets you handle the data via a simple callback or custom event.
+`smQL` includes a lightweight `Form` utility class to capture HTML form submissions, convert to plain JS objects, and handle via callbacks or custom events.
 
 ### Step 1: Minimal Setup (Quick Start)
-
-Use this to **get up and running fast** with just a form ID and a handler:
 
 ```js
 import { Form } from '@semantq/ql';
 
 new Form('myFormId', {
   onCaptured: async (data) => {
-    await new smQL('/api/endpoint', 'POST', data, {
-      formId: 'myFormId',
-    });
+    await new smQL('/api/endpoint', 'POST', data, { formId: 'myFormId' });
   },
 });
 ```
 
-> This is the cleanest version—ideal for rapid prototyping.
-
-
-### Step 2: Using the Event Listener (for custom logic elsewhere)
-
-If you prefer decoupling the form logic or triggering other actions:
+### Step 2: Using Event Listener
 
 ```js
 import { Form } from '@semantq/ql';
@@ -192,36 +218,22 @@ const formHandler = new Form('productForm');
 
 formHandler.form.addEventListener('form:captured', async (e) => {
   const data = e.detail;
-
-  await new smQL('/product/products', 'POST', data, {
-    formId: 'productForm',
-  });
-
+  await new smQL('/product/products', 'POST', data, { formId: 'productForm' });
 });
 ```
 
-> Useful when you want multiple listeners or fine control over side effects.
-
-
 ### Step 3: Add Debugging and Inline Feedback
-
-Use the `debug` option to log captured form data to the console:
 
 ```js
 new Form('productForm', {
   debug: true,
   onCaptured: async (data) => {
-    await new smQL('/product/products', 'POST', data, {
-      formId: 'productForm',
-    });
+    await new smQL('/product/products', 'POST', data, { formId: 'productForm' });
   },
 });
 ```
 
-> Ideal for development mode or troubleshooting form submissions.
-
-
-### Step 4: Full Configuration (All Available Options)
+### Step 4: Full Configuration
 
 ```js
 new Form('orderForm', 'submit', {
@@ -240,19 +252,18 @@ new Form('orderForm', 'submit', {
 });
 ```
 
-#### Available Parameters
+#### Form Parameters
 
-| Parameter    | Type       | Default    | Description                                        |
-| ------------ | ---------- | ---------- | -------------------------------------------------- |
-| `formId`     | `string`   | —          | ID of the HTML form element                        |
-| `eventType`  | `string`   | `'submit'` | Event to listen for (e.g. `'submit'`, `'change'`)  |
-| `debug`      | `boolean`  | `false`    | Logs captured form data to the console             |
-| `onCaptured` | `function` | —          | Callback function executed with captured form data |
+| Parameter    | Type       | Default    | Description                                       |
+|  | - | - | - |
+| `formId`     | `string`   | —          | ID of the HTML form element                       |
+| `eventType`  | `string`   | `'submit'` | Event to listen for (e.g. `'submit'`, `'change'`) |
+| `debug`      | `boolean`  | `false`    | Logs captured form data to the console            |
+| `onCaptured` | `function` | —          | Callback executed with captured form data         |
+
 
 
 ## Pro Tip: Combine with `smQL` for Full-Stack CRUD
-
-Together, `Form` and `smQL` give you a seamless, declarative way to build **interactive forms with instant UI feedback**:
 
 ```js
 new Form('contactForm', {
@@ -266,20 +277,26 @@ new Form('contactForm', {
 });
 ```
 
+
+
 ## Why Use `smQL.js`?
 
-*  **Clean**: Say goodbye to repetitive fetch boilerplate
-*  **Fast**: One-liner CRUD calls
-*  **Safe**: Built-in error handling & form feedback
-*  **Reusable**: Works with any REST API
-*  **Smart**: Optional logging and auto UI updates
+* **Clean**: Say goodbye to repetitive fetch boilerplate
+* **Fast**: One-liner CRUD calls
+* **Safe**: Built-in error handling & form feedback
+* **Reusable**: Works with any REST API
+* **Smart**: Optional logging and auto UI updates
 
-##  Related Projects
 
-*  [Semantq Full Stack Starter](https://github.com/Gugulethu-Nyoni/semantq) – Seamlessly integrates with `smQL`.
+
+## Related Projects
+
+* [Semantq Full Stack Starter](https://github.com/Gugulethu-Nyoni/semantq) – Seamlessly integrates with `smQL`.
+
+
 
 ## License
 
 **MIT License** — use freely in personal and commercial projects.
 
-Danko!. Ngyabonga!
+Danko! Siyabonga!
