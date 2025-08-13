@@ -1,12 +1,16 @@
 // smQL.js - Final version
+// smQL.js - Final version
 export class smQL {
-  constructor(baseURL, defaultHeaders = {}) {
+  constructor(baseURL, defaultHeaders = {}, options = {}) {
     this.baseURL = baseURL;
     this.defaultHeaders = {
       'Content-Type': 'application/json',
       ...defaultHeaders,
     };
-    this.token = null; // Optional auth token
+    this.token = null;
+    this.options = {
+      log: options.log ?? true, // Default to true, can be overridden
+    };
   }
 
   setToken(token) {
@@ -14,7 +18,6 @@ export class smQL {
   }
 
   async request(endpoint, method = 'GET', body = null, headers = {}) {
-  try {
     const finalHeaders = {
       ...this.defaultHeaders,
       ...headers,
@@ -34,35 +37,43 @@ export class smQL {
       }
     }
 
-    const response = await fetch(`${this.baseURL}${endpoint}`, options);
-    
-    let data;
     try {
-      const contentType = response.headers.get('content-type');
-      data = contentType && contentType.includes('application/json')
-        ? await response.json()
-        : await response.text();
-    } catch (parseError) {
-      // If JSON parsing fails, include the raw response in the error
-      const rawResponse = await response.text();
-      throw new Error(`Failed to parse response: ${rawResponse}`);
-    }
+      const response = await fetch(`${this.baseURL}${endpoint}`, options);
+      
+      let data;
+      try {
+        const contentType = response.headers.get('content-type');
+        data = contentType && contentType.includes('application/json')
+          ? await response.json()
+          : await response.text();
+      } catch (parseError) {
+        // This is a true failure, as the response is unreadable.
+        const rawResponse = await response.text();
+        throw new Error(`Failed to parse response: ${rawResponse}`);
+      }
 
-    if (!response.ok) {
-      // Include status code and response data in error
-      const error = new Error(data?.message || data || `Request failed with status ${response.status}`);
-      error.status = response.status;
-      error.response = data;
+      // Add status and ok properties to the returned data for client-side evaluation
+      data = {
+        _status: response.status,
+        _ok: response.ok,
+        ...data,
+      };
+
+      // Optional logging based on instance setting
+      if (this.options.log) {
+        console.log(`[smQL] Request to ${endpoint} returned status ${response.status}`, data);
+      }
+
+      return data;
+
+    } catch (error) {
+      // This catch block is only for network errors or un-handled exceptions from fetch.
+      if (this.options.log) {
+        console.error(`[smQL] API request failed: ${method} ${endpoint}`, error);
+      }
       throw error;
     }
-
-    return data;
-  } catch (error) {
-    console.error(`API request failed: ${method} ${endpoint}`, error);
-    throw error;
   }
-}
-
 
   get(endpoint, headers = {}) {
     return this.request(endpoint, 'GET', null, headers);
@@ -84,9 +95,8 @@ export class smQL {
     return this.request(endpoint, 'DELETE', null, headers);
   }
 
-  // Static helper for quick one-off calls
-  static async fetch(baseURL, endpoint, method = 'GET', body = null, headers = {}) {
-    const client = new smQL(baseURL);
+  static async fetch(baseURL, endpoint, method = 'GET', body = null, headers = {}, options = {}) {
+    const client = new smQL(baseURL, {}, options);
     return client.request(endpoint, method, body, headers);
   }
 }
