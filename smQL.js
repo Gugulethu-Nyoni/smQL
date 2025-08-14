@@ -1,5 +1,4 @@
 // smQL.js - Final version
-// smQL.js - Final version
 export class smQL {
   constructor(baseURL, defaultHeaders = {}, options = {}) {
     this.baseURL = baseURL;

@@ -2,13 +2,9 @@
 
 **CRUD Abstraction for Semantq Full Stack Apps**
 
-smQL is a super lightweight, robust, and reusable JavaScript HTTP client class that simplifies **CRUD** (Create, Read, Update, Delete) operations using standard `fetch` API calls. It’s designed to streamline REST API interactions in your Semantq full-stack apps — keeping your code clean, consistent, and DRY.
-
-
+smQL is a lightweight, robust, and reusable JavaScript HTTP client class that simplifies **CRUD** (Create, Read, Update, Delete) operations using standard `fetch` API calls. It includes complementary Form and Notification utilities for complete frontend API interaction management.
 
 ## Installation
-
-Install via npm:
 
 ```bash
 npm install @semantq/ql
@@ -17,286 +13,305 @@ npm install @semantq/ql
 Import into your project:
 
 ```js
-import smQL from '@semantq/ql';
+// Import all components
+import { smQL, Form, Notification } from '@semantq/ql';
 
-// OR 
-import smQL, { Form } from '@semantq/ql';
+// Or import selectively
+import smQL from '@semantq/ql';
 ```
 
+## Core Features
 
+- **smQL**: HTTP client with built-in token management and logging
+- **Form**: Form data capture and submission handler
+- **Notification**: Elegant notification system with multiple types
 
-## Usage
+# smQL HTTP Client
+
+## Basic Usage
 
 ### Static One-Off Calls
 
-Make a single request without creating an instance:
-
 ```js
-const res = await smQL.fetch('/api/resource', 'GET');
+const response = await smQL.fetch(
+  'https://api.example.com', 
+  '/users',
+  'GET',
+  null,
+  { 'X-Custom-Header': 'value' }
+);
 ```
 
-
-
-### Creating an Instance with Base URL + Using Convenience CRUD Methods
-
-Instantiate `smQL` with a base API URL, then call methods passing relative endpoint paths:
+### Instance-Based Usage
 
 ```js
-const api = new smQL('http://localhost:3003');
+const api = new smQL('https://api.example.com', {
+  'X-API-Version': '1.0'
+}, { log: true });
 
-const products = await api.get('/product/products');
+// Set authentication token
+api.setToken('your_jwt_token_here');
 
-const newProduct = { name: 'Herbal Tea', price: 29.99 };
-await api.post('/product/products', newProduct);
-
-const updateData = { price: 24.99 };
-await api.put('/product/products/42', updateData);
-
-await api.delete('/product/products/42');
+// Make requests
+const users = await api.get('/users');
+const newUser = await api.post('/users', { name: 'John' });
 ```
 
+## Configuration Options
 
-
-### Direct Constructor Usage (Full Parameter Mode)
-
-Alternatively, call directly with all parameters:
+### Constructor Parameters
 
 ```js
-const result = await new smQL(endpoint, method, body, options);
+const api = new smQL(baseURL, defaultHeaders, options);
 ```
 
-#### Parameters:
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `baseURL` | string | Base API URL |
+| `defaultHeaders` | object | Default headers (default: {'Content-Type': 'application/json'}) |
+| `options` | object | Additional options: |
 
-| Parameter  | Type     | Description                                                             |
-| - | -- | -- |
-| `endpoint` | `string` | Full API URL or relative path                                           |
-| `method`   | `string` | HTTP method (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`), defaults `'GET'` |
-| `body`     | `object` | Payload for `POST`, `PUT`, or `PATCH` (optional)                        |
-| `options`  | `object` | Config object supporting:                                               |
-
-| Option           | Type    | Description                                                     |
-| - | - |  |
-| `headers`        | Object  | Additional headers to send (merged with default `Content-Type`) |
-| `log`            | Boolean | Enable/disable console logging (default: `true`)                |
-| `formId`         | String  | DOM ID of a form to auto-replace with success/error message     |
-| `successMessage` | String  | Message shown on success (default: "Submission successful.")    |
-| `errorMessage`   | String  | Message shown on failure (default: "An error occurred.")        |
-
-
-
-## Auto Logging
-
-All requests automatically log success or failure to the console:
-
-```js
-POST [201]: { id: 1, name: "Item" }
-```
-
-Disable logs per request:
-
-```js
-await new smQL('/api/resource', 'POST', payload, { log: false });
-```
-
-
-
-## Returned Result
-
-Each request returns a Promise resolving to:
-
+**Options:**
 ```js
 {
-  status: number,       // HTTP status code
-  ok: boolean,          // true if response.ok
-  data: any,            // JSON or text response data
-  error?: string        // Error message if request failed
+  log: true, // Enable/disable request logging (default: true)
 }
 ```
 
-Example usage:
+## CRUD Methods
 
+All methods return a response object with:
+- `_status`: HTTP status code
+- `_ok`: Boolean indicating success
+- Response data
+
+### GET Request
 ```js
-const response = await new smQL('/api/resource');
-const data = response.data;
-```
-
-
-
-## Built-in Form Feedback
-
-Pass a `formId` in options to automatically replace the form with messages:
-
-* On **success** (`POST`, `PUT`): form replaced by success message.
-* On **error**: form replaced by error message.
-
-Example:
-
-```js
-await new smQL('/products', 'POST', formData, {
-  formId: 'addProductForm',
-  successMessage: 'Product added!',
-  errorMessage: 'Something went wrong.',
+const response = await api.get('/users', {
+  'Cache-Control': 'no-cache'
 });
 ```
 
-
-
-## Examples: CRUD Operations
-
-### 1. **GET** — Fetch all products
-
+### POST Request
 ```js
-const res = await new smQL('http://localhost:3003/product/products');
-```
-
-### 2. **POST** — Create a new category
-
-```js
-const data = { name: 'Mobiles' };
-const res = await new smQL('http://localhost:3003/category/categories', 'POST', data);
-```
-
-### 3. **PUT** — Update a record
-
-```js
-const update = { name: 'Mobile Phones' };
-const res = await new smQL('http://localhost:3003/category/categories/7', 'PUT', update);
-```
-
-### 4. **DELETE** — Remove a record (logs off)
-
-```js
-const res = await new smQL('http://localhost:3003/product/products/42', 'DELETE', null, { log: false });
-```
-
-### 5. **GET with Custom Headers**
-
-```js
-const res = await new smQL('/api/secure', 'GET', null, {
-  headers: {
-    Authorization: 'Bearer token123',
-  },
+const response = await api.post('/users', {
+  name: 'Alice',
+  email: 'alice@example.com'
 });
 ```
 
-### 6. **POST with Full UI Feedback**
-
+### PUT Request
 ```js
-const formData = { name: 'Herbal Tea', price: 29.99 };
-
-await new smQL('/product/products', 'POST', formData, {
-  formId: 'productForm',
-  successMessage: 'Product added successfully!',
-  errorMessage: 'Please check your inputs.',
+const response = await api.put('/users/123', {
+  name: 'Alice Smith'
 });
 ```
 
-
-
-## Capturing Form Data: The `Form` Helper Class
-
-`smQL` includes a lightweight `Form` utility class to capture HTML form submissions, convert to plain JS objects, and handle via callbacks or custom events.
-
-### Step 1: Minimal Setup (Quick Start)
-
+### PATCH Request
 ```js
-import { Form } from '@semantq/ql';
-
-new Form('myFormId', {
-  onCaptured: async (data) => {
-    await new smQL('/api/endpoint', 'POST', data, { formId: 'myFormId' });
-  },
+const response = await api.patch('/users/123', {
+  email: 'new@example.com'
 });
 ```
 
-### Step 2: Using Event Listener
+### DELETE Request
+```js
+const response = await api.delete('/users/123');
+```
+
+## Logging System
+
+smQL provides detailed request logging when enabled:
 
 ```js
-import { Form } from '@semantq/ql';
+// Enable logging (default)
+const api = new smQL('https://api.example.com', {}, { log: true });
 
-const formHandler = new Form('productForm');
+// Disable logging
+const silentApi = new smQL('https://api.example.com', {}, { log: false });
+```
 
-formHandler.form.addEventListener('form:captured', async (e) => {
-  const data = e.detail;
-  await new smQL('/product/products', 'POST', data, { formId: 'productForm' });
+**Log Format:**
+```
+[smQL] Request to /users returned status 200 {
+  _status: 200,
+  _ok: true,
+  data: [...]
+}
+```
+
+## Error Handling
+
+smQL throws errors for:
+- Network failures
+- Invalid responses
+- Parsing errors
+
+```js
+try {
+  const response = await api.get('/nonexistent');
+} catch (error) {
+  console.error('API Error:', error);
+  Notification.show({
+    type: 'error',
+    message: 'Failed to load data'
+  });
+}
+```
+
+# Form Handler
+
+The Form class simplifies form data capture and handling.
+
+## Basic Usage
+
+```js
+const form = new Form('userForm', 'submit', {
+  debug: true,
+  onCaptured: (data) => {
+    api.post('/users', data)
+      .then(() => Notification.show({
+        type: 'success',
+        message: 'User created!'
+      }));
+  }
 });
 ```
 
-### Step 3: Add Debugging and Inline Feedback
+## Advanced Features
+
+### Multi-Select Support
+Automatically handles `<select multiple>` elements.
+
+### Array Values
+Converts repeated fields into arrays automatically.
+
+### Event System
+```js
+document.getElementById('userForm').addEventListener('form:captured', (e) => {
+  console.log('Form data:', e.detail);
+});
+```
+
+## Methods
+
+### getData()
+Returns the captured form data:
 
 ```js
+const form = new Form('userForm');
+// ... after form submission
+console.log(form.getData());
+```
+
+# Notification System
+
+Display user notifications with multiple types and options.
+
+## Basic Usage
+
+```js
+Notification.show({
+  type: 'success',
+  message: 'Operation completed successfully!',
+  duration: 5000
+});
+```
+
+## Notification Types
+
+- `success`: Green notification with checkmark
+- `error`: Red notification with warning icon
+- `warning`: Orange notification with warning icon
+
+## Configuration Options
+
+```js
+{
+  type: 'success', // 'success', 'error', or 'warning'
+  message: 'Message text',
+  duration: 5000, // Auto-close duration (0 to disable)
+  closeable: true // Show close button
+}
+```
+
+## Advanced Usage
+
+### Stacked Notifications
+Multiple notifications automatically stack vertically.
+
+### Custom Icons
+Override default icons with HTML:
+
+```js
+Notification.show({
+  type: 'success',
+  message: 'Custom icon <i class="fa fa-check"></i>'
+});
+```
+
+# Comprehensive Examples
+
+## Complete CRUD Workflow
+
+```js
+// 1. Initialize API client
+const api = new smQL('https://api.example.com');
+
+// 2. Set up form handler
 new Form('productForm', {
-  debug: true,
   onCaptured: async (data) => {
-    await new smQL('/product/products', 'POST', data, { formId: 'productForm' });
-  },
+    try {
+      // 3. Submit data
+      const response = await api.post('/products', data);
+      
+      // 4. Show success notification
+      Notification.show({
+        type: 'success',
+        message: 'Product created!'
+      });
+      
+      // 5. Refresh product list
+      const products = await api.get('/products');
+      renderProductList(products);
+      
+    } catch (error) {
+      Notification.show({
+        type: 'error',
+        message: 'Failed to create product'
+      });
+    }
+  }
 });
 ```
 
-### Step 4: Full Configuration
+## File Upload Example
 
 ```js
-new Form('orderForm', 'submit', {
-  debug: true,
-  onCaptured: async (data) => {
-    await new smQL('/orders', 'POST', data, {
-      formId: 'orderForm',
-      log: true,
-      headers: {
-        Authorization: 'Bearer token123',
-      },
-      successMessage: 'Order submitted successfully!',
-      errorMessage: 'Failed to submit order. Please try again.',
-    });
-  },
+const form = new Form('uploadForm');
+
+form.form.addEventListener('form:captured', async (e) => {
+  const formData = new FormData();
+  for (const key in e.detail) {
+    formData.append(key, e.detail[key]);
+  }
+  
+  await api.post('/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
 });
 ```
 
-#### Form Parameters
+## Why Use smQL?
 
-| Parameter    | Type       | Default    | Description                                       |
-|  | - | - | - |
-| `formId`     | `string`   | —          | ID of the HTML form element                       |
-| `eventType`  | `string`   | `'submit'` | Event to listen for (e.g. `'submit'`, `'change'`) |
-| `debug`      | `boolean`  | `false`    | Logs captured form data to the console            |
-| `onCaptured` | `function` | —          | Callback executed with captured form data         |
-
-
-
-## Pro Tip: Combine with `smQL` for Full-Stack CRUD
-
-```js
-new Form('contactForm', {
-  onCaptured: async (data) => {
-    await new smQL('/contact/submit', 'POST', data, {
-      formId: 'contactForm',
-      successMessage: 'Thank you! We’ll be in touch.',
-      errorMessage: 'There was a problem. Please try again.',
-    });
-  },
-});
-```
-
-
-
-## Why Use `smQL.js`?
-
-* **Clean**: Say goodbye to repetitive fetch boilerplate
-* **Fast**: One-liner CRUD calls
-* **Safe**: Built-in error handling & form feedback
-* **Reusable**: Works with any REST API
-* **Smart**: Optional logging and auto UI updates
-
-
-
-## Related Projects
-
-* [Semantq Full Stack Starter](https://github.com/Gugulethu-Nyoni/semantq) – Seamlessly integrates with `smQL`.
-
-
+- **Complete solution**: Combines HTTP client, form handling, and notifications
+- **Lightweight**: Minimal overhead
+- **Flexible**: Works with any backend API
+- **Consistent**: Standardized response format
+- **Debug-friendly**: Built-in logging system
 
 ## License
 
-**MIT License** — use freely in personal and commercial projects.
-
-Danko! Siyabonga!
+**MIT License** - Free for personal and commercial use.
