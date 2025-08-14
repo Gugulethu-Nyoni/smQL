@@ -17,7 +17,7 @@ Import into your project:
 import { smQL, Form, Notification } from '@semantq/ql';
 
 // Or import selectively
-import smQL from '@semantq/ql';
+import { smQL } from '@semantq/ql';
 ```
 
 ## Core Features
