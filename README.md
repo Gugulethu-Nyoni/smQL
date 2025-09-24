@@ -30,6 +30,67 @@ import { smQL } from '@semantq/ql';
 
 ## Basic Usage
 
+First, create a client instance:
+
+```js
+const api = new smQL(`${baseOrigin}`);
+// OR if outside the context of Semantq full stack
+const api = new smQL(`https://api.example/com`);
+
+
+const response = await api.get('/students');
+
+
+**Example API response:**
+
+```json
+{
+  "_status": 200,
+  "_ok": true,
+  "data": {
+    "0": { "id": 1, "name": "Alice" },
+    "1": { "id": 2, "name": "Bob" }
+  },
+  "meta": {
+    "total": 2,
+    "page": 1
+  }
+}
+```
+
+
+### B. Extract Data with the Same Client
+
+```js
+const students = api.getData(response);
+```
+
+**Extracted data:**
+
+```json
+[
+  { "id": 1, "name": "Alice" },
+  { "id": 2, "name": "Bob" }
+]
+```
+
+> **Note:** Using `api.getData(response)` is only needed when working with lists.  
+> For single-record responses, you can use the response object directly.
+
+```javascript
+// Make the API call (fetching a single record)
+const response = await api.get('/students/1');
+// or using a variable ID
+const response = await api.get(`/students/${studentId}`);
+
+// No need to call `getData`; the response can be used as-is
+// Example response structure:
+{
+  "id": 1,
+  "name": "Alice"
+}
+```
+
 ### Static One-Off Calls
 
 ```js
@@ -63,8 +124,8 @@ const newUser = await api.post('/users', { name: 'John' });
 
 ```js
 const api = new smQL(baseURL, defaultHeaders, options);
-```
 
+```
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `baseURL` | string | Base API URL |
@@ -84,6 +145,82 @@ All methods return a response object with:
 - `_status`: HTTP status code
 - `_ok`: Boolean indicating success
 - Response data
+
+
+###  ** Handling API Responses**
+
+When you receive a response from an API call using `smQL`, the data payload may contain more than just your records, such as metadata or status information. For requests that return a list of records (e.g., `/products`, `/users`), `smQL` provides a utility method, `getData`, to cleanly extract the array of objects.
+
+#### **1. Using an Established Client Instance**
+
+The most common and recommended approach is to use your existing `smQL` client instance to process the response. This is the cleanest and most developer-friendly method, as you don't need to create a new object just to process the data.
+
+```javascript
+// A. Make the API call using your pre-configured client
+const api = new smQL('https://api.example.com');
+const response = await api.get('/students');
+
+/*
+Typical Data Structure after API Call (`response`):
+
+{
+  "0": { "id": 1, "name": "Alice" },
+  "1": { "id": 2, "name": "Bob" },
+  "_status": 200,
+  "_ok": true
+}
+*/
+
+// B. Use the same client instance to extract the data
+const students = api.getData(response);
+
+/*
+Typical Data Structure after Extraction (`students`):
+
+[
+  { "id": 1, "name": "Alice" },
+  { "id": 2, "name": "Bob" }
+]
+*/
+```
+
+
+#### **2. Creating a New Client Instance**
+
+Alternatively, you can create a new, lightweight `smQL` instance specifically for a single data extraction task. This is useful if you don't have an existing client handle readily available in your code's scope.
+
+```javascript
+// A. Make the API call (e.g., using another method or static fetch)
+const response = await smQL.fetch('https://api.example.com', '/students');
+
+// B. Create a new instance to process the response
+const client = new smQL();
+const students = client.getData(response);
+
+console.log(students);
+```
+
+#### **3. Manual Data Extraction (Advanced)**
+
+For developers who prefer to handle the data processing manually, you can directly filter the response object to get the array of records. This method is an alternative to using the `getData` utility. It is necessary when you are not fetching a list of records but a single record like `product/:id`. In such cases, the `getData` method will return an empty array.
+
+```javascript
+const response = await api.get('/students');
+
+// Manually filter the object to extract the array of records
+const students = Object.values(response).filter(
+    item => typeof item === 'object' && item !== null && !Array.isArray(item)
+);
+
+console.log(students);
+```
+
+#### **When to Use `getData`**
+
+The `getData` method is essential for handling API responses that are **structured with extra properties beyond the main data array**. It intelligently filters out metadata, status codes, and other non-record objects, returning a clean, usable array.
+
+If your API call returns a **single record** (e.g., `/products/123`), the `getData` method is not needed, as the response object itself contains the record and can be used directly.
+
 
 ### GET Request
 ```js
