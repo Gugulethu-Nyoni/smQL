@@ -33,13 +33,10 @@ import { smQL } from '@semantq/ql';
 First, create a client instance:
 
 ```js
-const api = new smQL(`${baseOrigin}`);
+const api = new smQL(`${baseOrigin}`); //
 // OR if outside the context of Semantq full stack
 const api = new smQL(`https://api.example/com`);
-
-
 const response = await api.get('/students');
-
 
 **Example API response:**
 
@@ -57,6 +54,21 @@ const response = await api.get('/students');
   }
 }
 ```
+
+> **Note:**  
+> In the context of a Semantq Full Stack app, when you create a route using:  
+> 
+> ```bash
+> semantq make:route dashboard/students -c
+> ```  
+> 
+> the generated route file (`@page.smq`) includes full CRUD and API boilerplate, including:  
+> 
+> ```js
+> const api = new smQL(`${baseOrigin}`);
+> ```  
+> 
+> The goal of Semantq is to **save you time**, **streamline development**, and **optimize your workflow**.
 
 
 ### B. Extract Data with the Same Client
