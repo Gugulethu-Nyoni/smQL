@@ -246,7 +246,11 @@ export class Notification {
       type: 'success',
       message: 'Operation completed successfully',
       duration: 5000,
-      closeable: true
+      closeable: true,
+      successColor: null,
+      errorColor: null,
+      warningColor: null,
+      themeColor: null // General theme color that applies to all types if specific ones not provided
     };
     
     const settings = {...defaults, ...options};
@@ -260,6 +264,9 @@ export class Notification {
     `;
     
     container.appendChild(notification);
+    
+    // Apply custom colors if provided
+    this.applyCustomColors(notification, settings);
     
     // Trigger animation
     setTimeout(() => notification.classList.add('show'), 10);
@@ -281,6 +288,56 @@ export class Notification {
       });
     }
   }
+  
+  static applyCustomColors(notification, settings) {
+    // Determine which color to use based on type and provided options
+    let backgroundColor = null;
+    let borderColor = null;
+    
+    switch(settings.type) {
+      case 'success':
+        backgroundColor = settings.successColor || settings.themeColor;
+        borderColor = settings.successColor ? this.darkenColor(settings.successColor) : null;
+        break;
+      case 'error':
+        backgroundColor = settings.errorColor || settings.themeColor;
+        borderColor = settings.errorColor ? this.darkenColor(settings.errorColor) : null;
+        break;
+      case 'warning':
+        backgroundColor = settings.warningColor || settings.themeColor;
+        borderColor = settings.warningColor ? this.darkenColor(settings.warningColor) : null;
+        break;
+    }
+    
+    // Apply colors if provided
+    if (backgroundColor) {
+      notification.style.backgroundColor = backgroundColor;
+      if (borderColor) {
+        notification.style.borderLeft = `5px solid ${borderColor}`;
+      }
+    }
+  }
+  
+  static darkenColor(color, amount = 0.2) {
+    // Simple color darkening function
+    // Handles hex colors like #4CAF50 or #F44336
+    if (color.startsWith('#')) {
+      let hex = color.replace('#', '');
+      if (hex.length === 3) {
+        hex = hex.split('').map(c => c + c).join('');
+      }
+      
+      const num = parseInt(hex, 16);
+      const amt = Math.round(2.55 * amount * 100);
+      
+      const R = Math.max(0, ((num >> 16) & 0xff) - amt);
+      const G = Math.max(0, ((num >> 8) & 0xff) - amt);
+      const B = Math.max(0, (num & 0xff) - amt);
+      
+      return `#${((1 << 24) + (R << 16) + (G << 8) + B).toString(16).slice(1)}`;
+    }
+    
+    // If it's not a hex color, return a slightly darker version using rgba
+    return color; // Fallback to original color
+  }
 }
-
-
