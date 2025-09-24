@@ -314,6 +314,65 @@ The Form class simplifies form data capture and handling.
 
 ## Basic Usage
 
+### **Form Submission Example (without notifications)**
+
+```js
+// Initialize the form handler
+const studentForm = new Form('student-form'); // student-form is the id of the form element
+
+studentForm.form.addEventListener('form:captured', async (event) => {
+  try {
+    const payload = event.detail;
+    await api.post('/students', payload);
+    //console.log('Student added:', payload);
+    // Optionally reset the form
+    // event.target.reset();
+  } catch (error) {
+    console.error('Failed to add student:', error);
+  }
+});
+```
+
+> This version emphasizes simplicity — just handle the submission and API call.
+
+### **Form Submission Example with Notifications and Custom Branding Colors**
+
+```js
+const studentForm = new Form('student-form');
+
+studentForm.form.addEventListener('form:captured', async (event) => {
+  const payload = event.detail;
+
+  try {
+    await api.post('/students', payload);
+
+    Notification.show({
+      type: 'success',
+      message: 'Student added successfully!',
+      duration: 3000,
+      successColor: '#28a745', // Custom green
+      themeColor: '#007bff'    // Global theme for all types
+    });
+
+    console.log('Student added:', payload);
+    // event.target.reset();
+
+  } catch (error) {
+    Notification.show({
+      type: 'error',
+      message: `Student creation failed: ${error.message}`,
+      duration: 5000,
+      errorColor: '#dc3545',   // Custom red
+      themeColor: '#007bff'
+    });
+
+    console.error('Student creation failed:', error);
+  }
+});
+```
+
+### Declarative Form Submission Using a Form Class with onCaptured Callback
+
 ```js
 const form = new Form('userForm', 'submit', {
   debug: true,
