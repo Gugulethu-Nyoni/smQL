@@ -802,7 +802,7 @@ const productManager = new ProductManager();
                 }
             });
 ```
-You can visit the comprehensive smQL File Uploads docs here: [smQL File Uploads](/docs/FileUploads).
+You can visit the comprehensive smQL File Uploads docs here: [smQL File Uploads](/docs/FileUploads.md).
 
 ## Why Use smQL?
 
