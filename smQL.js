@@ -1,5 +1,6 @@
 // smQL.js - Final version
 export class smQL {
+
   constructor(baseURL ='', defaultHeaders = {}, options = {}) {
     this.baseURL = baseURL;
     this.defaultHeaders = {
@@ -16,63 +17,81 @@ export class smQL {
     this.token = token;
   }
 
-  async request(endpoint, method = 'GET', body = null, headers = {}) {
+  // smQL.js (Updated async request method)
+
+async request(endpoint, method = 'GET', body = null, headers = {}) {
+    
+    // 1. Determine if the body is a FormData instance (file upload)
+    const isFormData = body instanceof FormData;
+    
+    // Start with default headers and custom headers
     const finalHeaders = {
-      ...this.defaultHeaders,
-      ...headers,
+        ...this.defaultHeaders, // Contains 'Content-Type': 'application/json' by default
+        ...headers,
     };
 
+    // 2. 🚨 FIX: If sending FormData, REMOVE the Content-Type header.
+    // The browser must set the 'multipart/form-data' header, including its boundary, automatically.
+    if (isFormData) {
+        delete finalHeaders['Content-Type'];
+    }
+
     if (this.token) {
-      finalHeaders['Authorization'] = `Bearer ${this.token}`;
+        finalHeaders['Authorization'] = `Bearer ${this.token}`;
     }
 
     const options = { method, headers: finalHeaders };
 
     if (body && method !== 'GET' && method !== 'HEAD') {
-      if (finalHeaders['Content-Type'] === 'application/json') {
-        options.body = JSON.stringify(body);
-      } else {
-        options.body = body;
-      }
+        // 3. Update Body Assignment Logic:
+        //    a) If it's NOT FormData AND the Content-Type is still JSON (default), stringify it. (Backward compatible)
+        //    b) Otherwise (it IS FormData, or Content-Type was changed to something else), send the body directly.
+        if (!isFormData && finalHeaders['Content-Type'] === 'application/json') {
+            options.body = JSON.stringify(body);
+        } else {
+            options.body = body; // This handles FormData correctly.
+        }
     }
 
     try {
-      const response = await fetch(`${this.baseURL}${endpoint}`, options);
-      
-      let data;
-      try {
-        const contentType = response.headers.get('content-type');
-        data = contentType && contentType.includes('application/json')
-          ? await response.json()
-          : await response.text();
-      } catch (parseError) {
-        // This is a true failure, as the response is unreadable.
-        const rawResponse = await response.text();
-        throw new Error(`Failed to parse response: ${rawResponse}`);
-      }
+        const response = await fetch(`${this.baseURL}${endpoint}`, options);
+        
+        let data;
+        try {
+            const contentType = response.headers.get('content-type');
+            data = contentType && contentType.includes('application/json')
+                ? await response.json()
+                : await response.text();
+        } catch (parseError) {
+            // This is a true failure, as the response is unreadable.
+            const rawResponse = await response.text();
+            throw new Error(`Failed to parse response: ${rawResponse}`);
+        }
 
-      // Add status and ok properties to the returned data for client-side evaluation
-      data = {
-        _status: response.status,
-        _ok: response.ok,
-        ...data,
-      };
+        // Add status and ok properties to the returned data for client-side evaluation
+        data = {
+            _status: response.status,
+            _ok: response.ok,
+            ...data,
+        };
 
-      // Optional logging based on instance setting
-      if (this.options.log) {
-        console.log(`[smQL] Request to ${endpoint} returned status ${response.status}`, data);
-      }
+        // Optional logging based on instance setting
+        if (this.options.log) {
+            console.log(`[smQL] Request to ${endpoint} returned status ${response.status}`, data);
+        }
 
-      return data;
+        return data;
 
     } catch (error) {
-      // This catch block is only for network errors or un-handled exceptions from fetch.
-      if (this.options.log) {
-        console.error(`[smQL] API request failed: ${method} ${endpoint}`, error);
-      }
-      throw error;
+        // This catch block is only for network errors or un-handled exceptions from fetch.
+        if (this.options.log) {
+            console.error(`[smQL] API request failed: ${method} ${endpoint}`, error);
+        }
+        throw error;
     }
-  }
+}
+
+
 
   getData (response) {
     const data = Object.values(response).filter(
@@ -109,68 +128,104 @@ export class smQL {
 
 
 export class Form {
-  constructor(formId, eventType = 'submit', options = {}) {
-    this.form = document.getElementById(formId);
-    if (!this.form) throw new Error(`Form with ID "${formId}" not found`);
+ constructor(formId, eventType = 'submit', options = {}) {
+  this.form = document.getElementById(formId);
+  if (!this.form) throw new Error(`Form with ID "${formId}" not found`);
 
-    this.debug = options.debug ?? false;
-    this.data = null;
-    this.onCaptured = options.onCaptured;
+  this.debug = options.debug ?? false;
+  this.data = null;
+  this.formData = null; // Store FormData object for file uploads
+  this.onCaptured = options.onCaptured;
 
-    this.form.addEventListener(eventType, (event) => {
-      event.preventDefault();
-      this.data = this.#captureFormData(this.form);
-
-      if (this.debug) {
-        console.log(`[Form] Data captured from #${formId}:`, this.data);
-      }
-
-      if (typeof this.onCaptured === 'function') {
-        this.onCaptured(this.data);
-      }
-
-      const customEvent = new CustomEvent('form:captured', { detail: this.data });
-      this.form.dispatchEvent(customEvent);
-    });
-  }
-
-  #captureFormData(form) {
-    const formData = new FormData(form);
-    const data = {};
-    
-    // Handle all form elements
-    for (const [name, value] of formData.entries()) {
-      // If the key already exists, convert to array or push to existing array
-      if (data[name] !== undefined) {
-        if (Array.isArray(data[name])) {
-          data[name].push(value);
-        } else {
-          data[name] = [data[name], value];
-        }
-      } else {
-        data[name] = value;
-      }
-    }
-    
-    // Special handling for multi-selects that might not be included in FormData if nothing selected
-    const multiSelects = form.querySelectorAll('select[multiple]');
-    multiSelects.forEach(select => {
-      if (!select.name) return;
+  this.form.addEventListener(eventType, (event) => {
+   event.preventDefault();
+  
+   // Capture both FormData object and regular data object
+   this.formData = new FormData(this.form);
       
-      const selectedOptions = Array.from(select.selectedOptions).map(opt => opt.value);
-      if (selectedOptions.length > 0) {
-        data[select.name] = selectedOptions.length === 1 ? selectedOptions[0] : selectedOptions;
-      }
+      // 1. 🛠️ UPDATE: Pass the created formData object
+   this.data = this.#captureFormData(this.form, this.formData);
+
+   if (this.debug) {
+    console.log(`[Form] Data captured from #${formId}:`, this.data);
+    console.log(`[Form] FormData object:`, this.formData);
+   }
+
+   if (typeof this.onCaptured === 'function') {
+    this.onCaptured({
+     data: this.data,
+     formData: this.formData,
+     hasFiles: this.#hasFileInputs()
     });
-    
-    return data;
-  }
+   }
 
-  getData() {
-    return this.data;
+   const customEvent = new CustomEvent('form:captured', {
+    detail: {
+     data: this.data,     // Backward compatible
+     formData: this.formData, // File uploads
+     hasFiles: this.#hasFileInputs() // Convenience flag
+    }
+   });
+   this.form.dispatchEvent(customEvent);
+  });
+ }
+
+  // 2. 🛠️ UPDATE: Accept formData as an argument
+ #captureFormData(form, formData) {
+  // NOTE: We no longer create a new FormData(form) inside this method
+  const data = {};
+ 
+  // Handle all form elements
+  for (const [name, value] of formData.entries()) {
+      
+        // 🚨 FILE UPLOAD FIX: If the value is a File, replace it with a descriptive object
+        let finalValue = value;
+        if (value instanceof File) {
+             finalValue = { name: value.name, type: value.type, size: value.size, isFile: true };
+        }
+        
+   // If the key already exists, convert to array or push to existing array
+   if (data[name] !== undefined) {
+    if (Array.isArray(data[name])) {
+     data[name].push(finalValue); // Use finalValue
+    } else {
+     data[name] = [data[name], finalValue]; // Use finalValue
+    }
+   } else {
+    data[name] = finalValue; // Use finalValue
+   }
   }
+ 
+  // Special handling for multi-selects (remains unchanged)
+  const multiSelects = form.querySelectorAll('select[multiple]');
+  multiSelects.forEach(select => {
+   if (!select.name) return;
+  
+   const selectedOptions = Array.from(select.selectedOptions).map(opt => opt.value);
+   if (selectedOptions.length > 0) {
+    data[select.name] = selectedOptions.length === 1 ? selectedOptions[0] : selectedOptions;
+   }
+  });
+ 
+  return data;
+ }
+
+ #hasFileInputs() {
+  return this.form.querySelector('input[type="file"]') !== null;
+ }
+
+ getData() {
+  return this.data;
+ }
+
+ getFormData() {
+  return this.formData;
+ }
+
+ hasFileInputs() {
+  return this.#hasFileInputs();
+ }
 }
-
 
 
 // Add this new Notification class right before the final exports

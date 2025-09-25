@@ -777,21 +777,32 @@ const productManager = new ProductManager();
 ## File Upload Example
 
 ```js
-const form = new Form('uploadForm');
+            new Form('product-upload-form', 'submit', {
+                onCaptured: async ({ formData, hasFiles, data }) => {
+                    const urlEndpoint = `/product/upload/${data.productId}`;
+                    document.getElementById('submit').disabled = true;
 
-form.form.addEventListener('form:captured', async (e) => {
-  const formData = new FormData();
-  for (const key in e.detail) {
-    formData.append(key, e.detail[key]);
-  }
-  
-  await api.post('/upload', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  });
-});
+                    try {
+                        if (!hasFiles) throw new Error("Please select a file.");
+
+                        const response = await api.post(urlEndpoint, formData);
+
+                        if (response._ok) {
+                            alert(`Upload successful! Processed ${response.count} records.`);
+                            document.getElementById('product-upload-form').reset();
+                        } else {
+                            throw new Error(response.error || 'Server error during upload.');
+                        }
+                    } catch (error) {
+                        console.error('Upload Failed:', error);
+                        alert(`Upload Failed: ${error.message}`);
+                    } finally {
+                        document.getElementById('submit').disabled = false;
+                    }
+                }
+            });
 ```
+You can visit the comprehensive smQL File Uploads docs here: [smQL File Uploads](/docs/FileUploads).
 
 ## Why Use smQL?
 
