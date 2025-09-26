@@ -1,4 +1,4 @@
-// smQL.js - Final version
+// smQL.js - NEW version
 export class smQL {
 
   constructor(baseURL ='', defaultHeaders = {}, options = {}) {
@@ -128,103 +128,113 @@ async request(endpoint, method = 'GET', body = null, headers = {}) {
 
 
 export class Form {
- constructor(formId, eventType = 'submit', options = {}) {
-  this.form = document.getElementById(formId);
-  if (!this.form) throw new Error(`Form with ID "${formId}" not found`);
+    constructor(formId, eventType = 'submit', options = {}) {
+        this.form = document.getElementById(formId);
+        if (!this.form) throw new Error(`Form with ID "${formId}" not found`);
 
-  this.debug = options.debug ?? false;
-  this.data = null;
-  this.formData = null; // Store FormData object for file uploads
-  this.onCaptured = options.onCaptured;
+        this.debug = options.debug ?? false;
+        this.data = null;
+        this.formData = null; // Store FormData object for file uploads
+        this.onCaptured = options.onCaptured;
 
-  this.form.addEventListener(eventType, (event) => {
-   event.preventDefault();
-  
-   // Capture both FormData object and regular data object
-   this.formData = new FormData(this.form);
-      
-      // 1. 🛠️ UPDATE: Pass the created formData object
-   this.data = this.#captureFormData(this.form, this.formData);
+        this.form.addEventListener(eventType, (event) => {
+            event.preventDefault();
 
-   if (this.debug) {
-    console.log(`[Form] Data captured from #${formId}:`, this.data);
-    console.log(`[Form] FormData object:`, this.formData);
-   }
+            // Capture both FormData object and regular data object
+            this.formData = new FormData(this.form);
+            this.data = this.#captureFormData(this.form, this.formData);
+            
+            // Determine if the form contains file inputs
+            const hasFiles = this.#hasFileInputs(); 
 
-   if (typeof this.onCaptured === 'function') {
-    this.onCaptured({
-     data: this.data,
-     formData: this.formData,
-     hasFiles: this.#hasFileInputs()
-    });
-   }
+            if (this.debug) {
+                console.log(`[Form] Data captured from #${formId}:`, this.data);
+                console.log(`[Form] FormData object:`, this.formData);
+            }
 
-   const customEvent = new CustomEvent('form:captured', {
-    detail: {
-     data: this.data,     // Backward compatible
-     formData: this.formData, // File uploads
-     hasFiles: this.#hasFileInputs() // Convenience flag
+            if (typeof this.onCaptured === 'function') {
+                this.onCaptured({
+                    data: this.data,
+                    formData: this.formData,
+                    hasFiles: hasFiles
+                });
+            }
+
+            // 🚨 BACKWARD COMPATIBILITY IMPLEMENTATION 🚨
+            let eventDetail;
+            if (hasFiles) {
+                // NEW WAY: Send the full object for file support.
+                eventDetail = {
+                    data: this.data,
+                    formData: this.formData,
+                    hasFiles: true 
+                };
+            } else {
+                // OLD WAY: Send just the flat data object for simple JSON posts.
+                eventDetail = this.data; 
+            }
+
+            const customEvent = new CustomEvent('form:captured', {
+                detail: eventDetail
+            });
+            this.form.dispatchEvent(customEvent);
+        });
     }
-   });
-   this.form.dispatchEvent(customEvent);
-  });
- }
 
-  // 2. 🛠️ UPDATE: Accept formData as an argument
- #captureFormData(form, formData) {
-  // NOTE: We no longer create a new FormData(form) inside this method
-  const data = {};
- 
-  // Handle all form elements
-  for (const [name, value] of formData.entries()) {
-      
-        // 🚨 FILE UPLOAD FIX: If the value is a File, replace it with a descriptive object
-        let finalValue = value;
-        if (value instanceof File) {
-             finalValue = { name: value.name, type: value.type, size: value.size, isFile: true };
+    #captureFormData(form, formData) {
+        // NOTE: We rely on the formData object passed from the constructor
+        const data = {};
+        
+        // Handle all form elements
+        for (const [name, value] of formData.entries()) {
+            
+            // FILE UPLOAD FIX: If the value is a File, replace it with a descriptive object
+            let finalValue = value;
+            if (value instanceof File) {
+                finalValue = { name: value.name, type: value.type, size: value.size, isFile: true };
+            }
+            
+            // If the key already exists, convert to array or push to existing array
+            if (data[name] !== undefined) {
+                if (Array.isArray(data[name])) {
+                    data[name].push(finalValue); 
+                } else {
+                    data[name] = [data[name], finalValue]; 
+                }
+            } else {
+                data[name] = finalValue; 
+            }
         }
         
-   // If the key already exists, convert to array or push to existing array
-   if (data[name] !== undefined) {
-    if (Array.isArray(data[name])) {
-     data[name].push(finalValue); // Use finalValue
-    } else {
-     data[name] = [data[name], finalValue]; // Use finalValue
+        // Special handling for multi-selects
+        const multiSelects = form.querySelectorAll('select[multiple]');
+        multiSelects.forEach(select => {
+            if (!select.name) return;
+        
+            const selectedOptions = Array.from(select.selectedOptions).map(opt => opt.value);
+            if (selectedOptions.length > 0) {
+                data[select.name] = selectedOptions.length === 1 ? selectedOptions[0] : selectedOptions;
+            }
+        });
+        
+        return data;
     }
-   } else {
-    data[name] = finalValue; // Use finalValue
-   }
-  }
- 
-  // Special handling for multi-selects (remains unchanged)
-  const multiSelects = form.querySelectorAll('select[multiple]');
-  multiSelects.forEach(select => {
-   if (!select.name) return;
-  
-   const selectedOptions = Array.from(select.selectedOptions).map(opt => opt.value);
-   if (selectedOptions.length > 0) {
-    data[select.name] = selectedOptions.length === 1 ? selectedOptions[0] : selectedOptions;
-   }
-  });
- 
-  return data;
- }
 
- #hasFileInputs() {
-  return this.form.querySelector('input[type="file"]') !== null;
- }
+    #hasFileInputs() {
+        return this.form.querySelector('input[type="file"]') !== null;
+    }
 
- getData() {
-  return this.data;
- }
+    getData() {
+        return this.data;
+    }
 
- getFormData() {
-  return this.formData;
- }
+    getFormData() {
+        return this.formData;
+    }
 
- hasFileInputs() {
-  return this.#hasFileInputs();
- }
+    hasFileInputs() {
+        return this.#hasFileInputs();
+    }
 }
 
 
