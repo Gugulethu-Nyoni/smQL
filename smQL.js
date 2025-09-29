@@ -40,7 +40,7 @@ async request(endpoint, method = 'GET', body = null, headers = {}) {
         finalHeaders['Authorization'] = `Bearer ${this.token}`;
     }
 
-    const options = { method, headers: finalHeaders };
+    const options = { method, headers: finalHeaders, credentials: 'include' };
 
     if (body && method !== 'GET' && method !== 'HEAD') {
         // 3. Update Body Assignment Logic:

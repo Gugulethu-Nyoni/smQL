@@ -1,6 +1,6 @@
 {
   "name": "@semantq/ql",
-  "version": "1.1.11",
+  "version": "1.1.12",
   "description": "CRUD abstraction module for SemantqQL",
   "type": "module",
   "main": "smQL.js",
